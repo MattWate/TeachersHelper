@@ -1,0 +1,8 @@
+.onboarding-grid { display: grid; gap: 16px; margin: 16px 0; }
+.step-card { position: relative; overflow: hidden; }
+.step-card.complete { border-color: #c7efcf; background: #f4fbf8; }
+.step-number { display: grid; place-items: center; width: 42px; height: 42px; margin-bottom: 12px; color: white; background: #e63462; border-radius: 999px; font-weight: 850; }
+.preview-box { display: grid; gap: 4px; padding: 12px; color: #1e6659; background: #dff5ee; border-radius: 16px; }
+.preview-box small { color: #645b68; line-height: 1.45; }
+.compact-form { margin-top: 12px; padding-top: 12px; border-top: 1px solid #ded6e7; }
+@media (min-width: 1040px) { .onboarding-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; } }
