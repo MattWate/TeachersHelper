@@ -1,7 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App.persistent.jsx';
+import App from './App.product.jsx';
 import './styles.css';
 
-const rootElement = document.querySelector('#root');
-createRoot(rootElement).render(React.createElement(React.StrictMode, {}, React.createElement(App)));
+createRoot(document.querySelector('#root')).render(React.createElement(React.StrictMode, {}, React.createElement(App)));
