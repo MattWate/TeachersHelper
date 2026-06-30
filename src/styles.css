@@ -5,6 +5,10 @@
   --pearl-aqua: #7bcdba;
   --lavender-grey: #9799ca;
   --light-green: #61e294;
+  --magenta-bloom: #e63462;
+  --jet-black: #333745;
+  --vibrant-coral: #fe5f55;
+  --tea-green: #c7efcf;
 
   --primary: #5c3f73;
   --primary-container: #f0e4f7;
@@ -13,7 +17,12 @@
   --secondary-container: #dff5ee;
   --tertiary: #424580;
   --tertiary-container: #e8e8f7;
+  --accent: #e63462;
+  --accent-container: #ffe4ec;
+  --coral: #fe5f55;
+  --coral-container: #ffedea;
   --success: #137944;
+  --success-container: #e8f9eb;
 
   --surface: #fffdf8;
   --surface-soft: #f7f3fb;
@@ -21,17 +30,19 @@
   --background: #fbf8ff;
   --outline: #ded6e7;
   --outline-strong: #bdb2c9;
-  --text: #201a24;
+  --text: #333745;
   --text-muted: #645b68;
   --error: #9b2c1f;
   --error-container: #ffede8;
 
-  --gradient-brand: linear-gradient(135deg, #bd93d8 0%, #7bcdba 45%, #61e294 100%);
-  --gradient-soft: radial-gradient(circle at top left, rgba(189, 147, 216, 0.32), transparent 34%), radial-gradient(circle at top right, rgba(97, 226, 148, 0.3), transparent 30%), #fbf8ff;
+  --gradient-brand: linear-gradient(135deg, #bd93d8 0%, #7bcdba 48%, #c7efcf 100%);
+  --gradient-accent: linear-gradient(135deg, #e63462 0%, #fe5f55 100%);
+  --gradient-hero: linear-gradient(135deg, #4f3767 0%, #416e76 50%, #34825f 100%);
+  --gradient-soft: radial-gradient(circle at top left, rgba(189, 147, 216, 0.32), transparent 34%), radial-gradient(circle at top right, rgba(199, 239, 207, 0.45), transparent 30%), #fbf8ff;
 
-  --shadow-1: 0 2px 8px rgba(55, 42, 70, 0.1), 0 1px 2px rgba(55, 42, 70, 0.08);
-  --shadow-2: 0 12px 32px rgba(55, 42, 70, 0.14), 0 3px 8px rgba(55, 42, 70, 0.1);
-  --shadow-3: 0 24px 70px rgba(55, 42, 70, 0.18);
+  --shadow-1: 0 2px 8px rgba(51, 55, 69, 0.1), 0 1px 2px rgba(51, 55, 69, 0.08);
+  --shadow-2: 0 12px 32px rgba(51, 55, 69, 0.14), 0 3px 8px rgba(51, 55, 69, 0.1);
+  --shadow-3: 0 24px 70px rgba(51, 55, 69, 0.18);
 
   --radius-xs: 12px;
   --radius-sm: 16px;
@@ -107,7 +118,7 @@ input:disabled {
   gap: var(--space-6);
   padding: var(--space-6);
   color: var(--on-primary);
-  background: linear-gradient(135deg, #4f3767, #416e76 52%, #34825f);
+  background: var(--gradient-hero);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-3);
   overflow: hidden;
@@ -120,9 +131,9 @@ input:disabled {
   inset: auto -60px -80px auto;
   width: 220px;
   height: 220px;
-  background: var(--gradient-brand);
+  background: var(--gradient-accent);
   border-radius: 999px;
-  opacity: 0.28;
+  opacity: 0.24;
   filter: blur(2px);
 }
 
@@ -169,7 +180,7 @@ input:disabled {
 .panel,
 .stat-card {
   border: 1px solid rgba(109, 91, 124, 0.12);
-  background: rgba(255, 253, 248, 0.9);
+  background: rgba(255, 253, 248, 0.92);
   box-shadow: var(--shadow-1);
   backdrop-filter: blur(18px);
 }
@@ -189,7 +200,7 @@ input:disabled {
 }
 
 .price-card strong {
-  color: var(--primary);
+  color: var(--accent);
   font-size: 2.25rem;
   letter-spacing: -0.055em;
 }
@@ -233,8 +244,8 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: var(--wisteria);
-  box-shadow: 0 0 0 4px rgba(189, 147, 216, 0.24);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(230, 52, 98, 0.16);
 }
 
 .stats-grid,
@@ -276,6 +287,16 @@ textarea:focus {
   color: var(--secondary);
   background: var(--secondary-container);
   border-radius: 18px;
+}
+
+.stat-card:nth-child(2) .stat-icon {
+  color: var(--primary);
+  background: var(--primary-container);
+}
+
+.stat-card:nth-child(3) .stat-icon {
+  color: var(--success);
+  background: var(--success-container);
 }
 
 .panel {
@@ -428,6 +449,12 @@ textarea:focus {
 
 .ghost-button:hover {
   background: #e8d6f3;
+}
+
+.price-card .ghost-button,
+.login-card .primary-button {
+  background: var(--gradient-accent);
+  color: #fff;
 }
 
 .observation-list,
