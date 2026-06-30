@@ -2,14 +2,16 @@ import { useState } from 'react';
 
 export default function SignIn({ onSignIn, loading, error }) {
   const [mode, setMode] = useState('signin');
-  const [form, setForm] = useState({ fullName: '', email: '' });
+  const [form, setForm] = useState({ fullName: '', email: '', password: '' });
   const isCreateMode = mode === 'create';
 
   function submit(event) {
     event.preventDefault();
     onSignIn({
+      mode,
       fullName: isCreateMode ? form.fullName.trim() : '',
       email: form.email.trim().toLowerCase(),
+      password: form.password,
     });
   }
 
@@ -45,7 +47,12 @@ export default function SignIn({ onSignIn, loading, error }) {
             <input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} placeholder="teacher@example.com" required />
           </label>
 
-          <p className="empty-state">{isCreateMode ? 'Use the email address you want linked to your classroom workspace.' : 'Enter the email address you used when you created your workspace.'}</p>
+          <label>
+            Password
+            <input type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} placeholder="Your password" required minLength={8} />
+          </label>
+
+          <p className="empty-state">{isCreateMode ? 'Create a password with at least 8 characters.' : 'Use the email and password linked to your workspace.'}</p>
 
           {error && <p className="error-message">{error}</p>}
           <button className="primary-button" type="submit" disabled={loading}>{loading ? 'Opening...' : isCreateMode ? 'Create workspace' : 'Sign in'}</button>
