@@ -14,7 +14,7 @@ export function getActiveClass(dashboard, selectedClassId) {
 }
 
 export function getClassLearners(dashboard, classId) {
-  return dashboard?.learners.filter((learner) => learner.class_id === classId) || [];
+  return dashboard?.learners.filter((learner) => learner.class_id === classId && learner.active !== false) || [];
 }
 
 export function getLearnerObservations(dashboard, learnerId) {
