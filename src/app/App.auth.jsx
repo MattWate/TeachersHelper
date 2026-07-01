@@ -27,7 +27,7 @@ export default function App() {
     if (!dashboard) return;
     const nextClassId = selectedClassId || dashboard.classes[0]?.id || null;
     if (!selectedClassId && nextClassId) setSelectedClassId(nextClassId);
-    const firstLearner = dashboard.learners.find((learner) => learner.class_id === nextClassId);
+    const firstLearner = dashboard.learners.find((learner) => learner.class_id === nextClassId && learner.active !== false);
     if (!selectedLearnerId && firstLearner) setSelectedLearnerId(firstLearner.id);
   }, [dashboard, selectedClassId, selectedLearnerId]);
 
@@ -100,7 +100,27 @@ export default function App() {
     await run('createLearner', { classId: activeClass.id, learnerName, preferredName: learnerName });
   }
 
-  async function importLearners(names) { for (const name of names) await addLearner(name); }
+  async function addLearners(names) { for (const name of names) await addLearner(name); }
+  async function importLearners(names) { await addLearners(names); }
+
+  async function removeLearner(learnerId) {
+    if (!window.confirm('Remove this learner from the active class list? Their saved observations will be kept.')) return;
+    setLoading(true);
+    setError('');
+    try {
+      const response = await fetch('/.netlify/functions/remove-learner', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: session.email, learnerId }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result.error) throw new Error(result.error || 'Could not remove learner.');
+      if (learnerId === selectedLearnerId) setSelectedLearnerId(null);
+      await loadWorkspace(session);
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
+  }
+
   async function saveObservation(payload) { await run('addObservation', payload); }
   async function generateReport(learnerId) { const data = await run('generateReport', { learnerId }); return data?.draft || null; }
 
@@ -108,5 +128,5 @@ export default function App() {
   if (!session) return <SignIn onSignIn={handleSignIn} loading={loading} error={error} />;
   if (!dashboard) return <main className="app-shell"><div className="report-placeholder">Opening your workspace...</div></main>;
   if (!dashboard.classes.length || !learners.length) return <OnboardingFlow session={session} hasClass={Boolean(dashboard.classes.length)} hasLearners={Boolean(learners.length)} loading={loading} error={error} onLogout={logout} onCreateClass={createClass} onAddLearner={addLearner} onImportLearners={importLearners} />;
-  return <Dashboard session={session} dashboard={dashboard} selectedClassId={activeClass?.id} selectedLearnerId={selectedLearnerId} loading={loading} error={error} onLogout={logout} onSelectClass={setSelectedClassId} onSelectLearner={setSelectedLearnerId} onSaveObservation={saveObservation} onGenerateReport={generateReport} />;
+  return <Dashboard session={session} dashboard={dashboard} selectedClassId={activeClass?.id} selectedLearnerId={selectedLearnerId} loading={loading} error={error} onLogout={logout} onSelectClass={setSelectedClassId} onSelectLearner={setSelectedLearnerId} onSaveObservation={saveObservation} onGenerateReport={generateReport} onAddLearners={addLearners} onRemoveLearner={removeLearner} />;
 }
