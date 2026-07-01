@@ -1,4 +1,3 @@
-import { LogOut } from 'lucide-react';
 import CreateClassStep from './CreateClassStep.jsx';
 import LearnerListStep from './LearnerListStep.jsx';
 import ReadyStep from './ReadyStep.jsx';
@@ -12,11 +11,11 @@ export default function OnboardingFlow({ session, hasClass, hasLearners, loading
           <h1>Set up your first class.</h1>
           <p className="hero-copy">Create a class, add your learners, then start capturing the small observations that make reports more personal.</p>
         </div>
-        <div className="price-card">
+        <div className="price-card workspace-card">
           <span>Your workspace</span>
           <strong>{session.fullName || 'Welcome'}</strong>
           <small>{session.email}</small>
-          <button className="ghost-button" onClick={onLogout}><LogOut size={16} /> Switch user</button>
+          <button className="text-button" onClick={onLogout}>Log out</button>
         </div>
       </section>
 
