@@ -5,4 +5,8 @@
 .preview-box { display: grid; gap: 4px; padding: 12px; color: #1e6659; background: #dff5ee; border-radius: 16px; }
 .preview-box small { color: #645b68; line-height: 1.45; }
 .compact-form { margin-top: 12px; padding-top: 12px; border-top: 1px solid #ded6e7; }
+.workspace-card { align-content: start; gap: 10px; }
+.workspace-card strong { font-size: 1.75rem; line-height: 1.05; }
+.text-button { justify-self: start; min-height: 36px; padding: 4px 0; color: #5c3f73; background: transparent; border: 0; border-radius: 0; font-weight: 780; text-decoration: underline; text-underline-offset: 4px; box-shadow: none; }
+.text-button:hover { color: #e63462; }
 @media (min-width: 1040px) { .onboarding-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; } }
