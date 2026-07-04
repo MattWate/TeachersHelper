@@ -1,5 +1,4 @@
 import { neon } from '@neondatabase/serverless';
-import { neon } from '@neondatabase/serverless';
 import { GoogleGenAI, Type } from '@google/genai';
 
 const jsonHeaders = {
