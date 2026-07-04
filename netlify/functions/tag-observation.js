@@ -1,5 +1,3 @@
-import { GoogleGenAI, Type } from '@google/genai';
-
 export async function handler(event) {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Method not allowed' }) };
@@ -11,20 +9,20 @@ export async function handler(event) {
       return { statusCode: 400, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'A text field is required.' }) };
     }
 
-    // Safety check
     if (!process.env.GEMINI_API_KEY) {
       return { statusCode: 500, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'GEMINI_API_KEY is not configured.' }) };
     }
 
-    // Initialize safely inside the function
+    // Dynamic import to prevent server crashes
+    const { GoogleGenAI, Type } = await import('@google/genai');
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
     const responseSchema = {
       type: Type.OBJECT,
       properties: {
-        category: { type: Type.STRING, description: "The primary category of the observation." },
-        sentiment: { type: Type.STRING, description: "The sentiment: 'Observation', 'Improvement', 'Development area', 'Positive', 'Concern'." },
-        aiSummary: { type: Type.STRING, description: "A very brief, clean summary of the observation (under 180 characters)." }
+        category: { type: Type.STRING },
+        sentiment: { type: Type.STRING },
+        aiSummary: { type: Type.STRING }
       },
       required: ["category", "sentiment", "aiSummary"]
     };
