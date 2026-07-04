@@ -1,8 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
 
-// Automatically uses GEMINI_API_KEY from Netlify environment
-const ai = new GoogleGenAI({});
-
 export async function handler(event) {
   if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method Not Allowed' };
 
@@ -10,7 +7,14 @@ export async function handler(event) {
     const { audioBase64, mimeType } = JSON.parse(event.body || '{}');
     if (!audioBase64) return { statusCode: 400, body: JSON.stringify({ error: 'No audio provided' }) };
 
-    // Gemini 1.5 Flash handles audio files natively and incredibly fast
+    // Safety check: Ensure the key exists before trying to use it
+    if (!process.env.GEMINI_API_KEY) {
+      return { statusCode: 500, body: JSON.stringify({ error: 'GEMINI_API_KEY is not configured in Netlify.' }) };
+    }
+
+    // Initialize safely inside the function
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
     const response = await ai.models.generateContent({
       model: 'gemini-1.5-flash',
       contents: [
