@@ -2,8 +2,6 @@ import { neon } from '@neondatabase/serverless';
 import { neon } from '@neondatabase/serverless';
 import { GoogleGenAI, Type } from '@google/genai';
 
-const ai = new GoogleGenAI({});
-
 const jsonHeaders = {
   'Content-Type': 'application/json',
   'Access-Control-Allow-Origin': '*',
