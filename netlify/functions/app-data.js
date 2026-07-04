@@ -1,5 +1,4 @@
 import { neon } from '@neondatabase/serverless';
-import { GoogleGenAI, Type } from '@google/genai';
 
 const jsonHeaders = {
   'Content-Type': 'application/json',
@@ -37,13 +36,16 @@ function getWeekStartDate(date = new Date()) {
 
 async function classifyObservation(text = '') {
   try {
-    // Safety check: If the key is missing, don't crash the app, just use defaults
+    // Safety check: If the key is missing, don't crash, just use defaults
     if (!process.env.GEMINI_API_KEY) {
       console.warn("GEMINI_API_KEY is missing. Using default tags.");
       return { category: 'General', sentiment: 'Observation', summary: text.slice(0, 180) };
     }
 
-    // Initialize INSIDE the function
+    // NEW: Dynamically import the package ONLY when we actually need to classify a note.
+    // This protects the login flow from crashing!
+    const { GoogleGenAI, Type } = await import('@google/genai');
+    
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
     const responseSchema = {
