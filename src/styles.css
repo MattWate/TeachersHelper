@@ -597,8 +597,10 @@ textarea:focus {
 
 .dashboard-nav {
   margin-bottom: var(--space-4);
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
+  background: rgba(255, 253, 248, 0.85); /* Slightly warmer, more opaque glass */
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(109, 91, 124, 0.12); /* Matches your panel borders */
+  box-shadow: var(--shadow-1);
 }
 
 .voice-recorder-container {
