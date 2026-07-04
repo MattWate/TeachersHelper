@@ -126,7 +126,19 @@ export default function App() {
 
   if (checking) return <main className="app-shell"><div className="report-placeholder">Checking your sign-in...</div></main>;
   if (!session) return <SignIn onSignIn={handleSignIn} loading={loading} error={error} />;
+  
+  // NEW: Catch backend errors during load instead of hanging forever
+  if (error && !dashboard) return (
+    <main className="app-shell login-shell">
+      <div className="error-banner" style={{ padding: '32px', textAlign: 'center', maxWidth: '400px' }}>
+        <h3 style={{ marginTop: 0 }}>Workspace failed to load</h3>
+        <p>{error}</p>
+        <button className="ghost-button" onClick={logout} style={{ marginTop: '24px', width: '100%' }}>Sign out & try again</button>
+      </div>
+    </main>
+  );
+
   if (!dashboard) return <main className="app-shell"><div className="report-placeholder">Opening your workspace...</div></main>;
-  if (!dashboard.classes.length || !learners.length) return <OnboardingFlow session={session} hasClass={Boolean(dashboard.classes.length)} hasLearners={Boolean(learners.length)} loading={loading} error={error} onLogout={logout} onCreateClass={createClass} onAddLearner={addLearner} onImportLearners={importLearners} />;
+  
   return <Dashboard session={session} dashboard={dashboard} selectedClassId={activeClass?.id} selectedLearnerId={selectedLearnerId} loading={loading} error={error} onLogout={logout} onSelectClass={setSelectedClassId} onSelectLearner={setSelectedLearnerId} onSaveObservation={saveObservation} onGenerateReport={generateReport} onAddLearners={addLearners} onRemoveLearner={removeLearner} />;
 }
