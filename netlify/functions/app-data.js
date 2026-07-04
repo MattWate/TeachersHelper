@@ -38,6 +38,15 @@ function getWeekStartDate(date = new Date()) {
 
 async function classifyObservation(text = '') {
   try {
+    // Safety check: If the key is missing, don't crash the app, just use defaults
+    if (!process.env.GEMINI_API_KEY) {
+      console.warn("GEMINI_API_KEY is missing. Using default tags.");
+      return { category: 'General', sentiment: 'Observation', summary: text.slice(0, 180) };
+    }
+
+    // Initialize INSIDE the function
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
     const responseSchema = {
       type: Type.OBJECT,
       properties: {
