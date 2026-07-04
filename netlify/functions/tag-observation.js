@@ -1,3 +1,5 @@
+import { GoogleGenAI, Type } from '@google/genai'; // Back to static import
+
 export async function handler(event) {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Method not allowed' }) };
@@ -13,8 +15,7 @@ export async function handler(event) {
       return { statusCode: 500, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'GEMINI_API_KEY is not configured.' }) };
     }
 
-    // Dynamic import to prevent server crashes
-    const { GoogleGenAI, Type } = await import('@google/genai');
+    // Initialize safely inside
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
     const responseSchema = {
