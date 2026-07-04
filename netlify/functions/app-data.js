@@ -1,4 +1,8 @@
 import { neon } from '@neondatabase/serverless';
+import { neon } from '@neondatabase/serverless';
+import { GoogleGenAI, Type } from '@google/genai';
+
+const ai = new GoogleGenAI({});
 
 const jsonHeaders = {
   'Content-Type': 'application/json',
@@ -34,34 +38,34 @@ function getWeekStartDate(date = new Date()) {
   return copy.toISOString().slice(0, 10);
 }
 
-function classifyObservation(text = '') {
-  const lower = text.toLowerCase();
+async function classifyObservation(text = '') {
+  try {
+    const responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        category: { type: Type.STRING },
+        sentiment: { type: Type.STRING },
+        aiSummary: { type: Type.STRING }
+      },
+      required: ["category", "sentiment", "aiSummary"]
+    };
 
-  if (lower.includes('read') || lower.includes('reading') || lower.includes('book')) {
-    return { category: 'Reading', sentiment: lower.includes('improved') || lower.includes('better') ? 'Improvement' : 'Observation' };
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: `Analyze this classroom observation and extract the core category, sentiment (Observation/Improvement/Development area/Positive/Concern), and a short summary (under 180 chars). Observation: "${text}"`,
+      config: { responseMimeType: 'application/json', responseSchema }
+    });
+
+    const data = JSON.parse(response.text);
+    return {
+      category: data.category || 'General',
+      sentiment: data.sentiment || 'Observation',
+      summary: data.aiSummary || text.slice(0, 180)
+    };
+  } catch (err) {
+    console.error('Gemini classification failed, falling back to defaults', err);
+    return { category: 'General', sentiment: 'Observation', summary: text.slice(0, 180) };
   }
-
-  if (lower.includes('spell') || lower.includes('writing') || lower.includes('sentence')) {
-    return { category: 'Writing', sentiment: lower.includes('improved') || lower.includes('better') ? 'Improvement' : 'Observation' };
-  }
-
-  if (lower.includes('times table') || lower.includes('math') || lower.includes('number') || lower.includes('calculation') || lower.includes('multiply')) {
-    return { category: 'Maths', sentiment: lower.includes('struggle') || lower.includes('mixed up') || lower.includes('confus') ? 'Development area' : 'Observation' };
-  }
-
-  if (lower.includes('friend') || lower.includes('helped') || lower.includes('kind') || lower.includes('settle')) {
-    return { category: 'Social development', sentiment: 'Positive' };
-  }
-
-  if (lower.includes('focus') || lower.includes('concentration') || lower.includes('distract')) {
-    return { category: 'Focus', sentiment: 'Development area' };
-  }
-
-  if (lower.includes('confidence') || lower.includes('confident')) {
-    return { category: 'Confidence', sentiment: lower.includes('more') || lower.includes('improved') ? 'Improvement' : 'Observation' };
-  }
-
-  return { category: 'General', sentiment: 'Observation' };
 }
 
 function generateLearnerReport({ learner, observations, reportStructure }) {
@@ -249,7 +253,7 @@ async function addObservation(sql, payload) {
     }
   }
 
-  const classification = classifyObservation(payload.text);
+  const classification = await classifyObservation(payload.text);
 
   await sql`
     insert into observations (
@@ -271,7 +275,7 @@ async function addObservation(sql, payload) {
       ${observationType},
       ${payload.text},
       ${payload.text.trim()},
-      ${payload.text.trim().slice(0, 180)},
+      ${classification.summary},
       ${classification.category},
       ${payload.subject || classification.category},
       ${classification.sentiment},
