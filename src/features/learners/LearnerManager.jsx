@@ -1,31 +1,59 @@
 import { useState } from 'react';
-import { UploadCloud } from 'lucide-react';
+import { UploadCloud, Loader } from 'lucide-react';
 import { parseLearnerNames } from './learnerBatchParser.js';
 
 export default function LearnerManager({ learners, loading, onAddLearners, onRemoveLearner }) {
   const [open, setOpen] = useState(false);
   const [namesText, setNamesText] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
   const names = parseLearnerNames(namesText);
 
   async function addNames() {
     if (!names.length) return;
     await onAddLearners(names);
     setNamesText('');
-    setOpen(false); // Close the manager after successful addition
+    setOpen(false);
   }
 
-  function handleFileUpload(event) {
+  async function handleFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
     
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      // Append the new names to whatever might already be in the text box
-      setNamesText(prev => prev + (prev ? '\n' : '') + e.target.result);
-    };
-    reader.readAsText(file);
+    setIsUploading(true);
+
+    if (file.type === 'application/pdf') {
+      // Send PDFs to Gemini to extract the text
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onloadend = async () => {
+        const base64data = reader.result.split(',')[1];
+        try {
+          const res = await fetch('/.netlify/functions/parse-document', {
+            method: 'POST',
+            body: JSON.stringify({ fileBase64: base64data, mimeType: file.type })
+          });
+          const data = await res.json();
+          if (data.text) {
+            setNamesText(prev => prev + (prev ? '\n' : '') + data.text);
+          } else {
+            alert(`Could not extract text: ${data.details || data.error}`);
+          }
+        } catch (e) {
+          alert('Failed to connect to document parser.');
+        } finally {
+          setIsUploading(false);
+        }
+      };
+    } else {
+      // Handle CSV and TXT instantly in the browser
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setNamesText(prev => prev + (prev ? '\n' : '') + e.target.result);
+        setIsUploading(false);
+      };
+      reader.readAsText(file);
+    }
     
-    // Clear the input so the same file can be uploaded again if needed
     event.target.value = '';
   }
 
@@ -47,19 +75,21 @@ export default function LearnerManager({ learners, loading, onAddLearners, onRem
         <div className="note-form">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
             <p className="empty-state" style={{ margin: 0 }}>
-              Paste names from Word/Excel, or upload a CSV file.
+              Paste names, or upload a CSV, TXT, or PDF file.
             </p>
-            <label style={{ cursor: 'pointer', color: 'var(--primary)', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <UploadCloud size={18} /> Upload CSV/TXT
-              <input type="file" accept=".csv, .txt" onChange={handleFileUpload} style={{ display: 'none' }} />
+            <label style={{ cursor: isUploading ? 'not-allowed' : 'pointer', color: 'var(--primary)', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px', opacity: isUploading ? 0.5 : 1 }}>
+              {isUploading ? <Loader size={18} className="spin-icon" /> : <UploadCloud size={18} />} 
+              {isUploading ? 'Extracting...' : 'Upload File'}
+              <input type="file" accept=".csv, .txt, .pdf, application/pdf" onChange={handleFileUpload} style={{ display: 'none' }} disabled={isUploading} />
             </label>
           </div>
 
           <textarea 
             value={namesText} 
             onChange={(event) => setNamesText(event.target.value)} 
-            placeholder={'Add learners, one per line\nNomsa Dlamini\nJames Patel\nEmily Brown'} 
+            placeholder={isUploading ? 'Extracting text from file...' : 'Add learners, one per line\nNomsa Dlamini\nJames Patel\nEmily Brown'} 
             rows={5}
+            disabled={isUploading}
           />
           
           {names.length > 0 && (
@@ -69,7 +99,7 @@ export default function LearnerManager({ learners, loading, onAddLearners, onRem
             </div>
           )}
           
-          <button className="primary-button" type="button" onClick={addNames} disabled={loading || names.length === 0}>
+          <button className="primary-button" type="button" onClick={addNames} disabled={loading || names.length === 0 || isUploading}>
             {loading ? 'Adding...' : 'Add learners'}
           </button>
 
