@@ -100,12 +100,16 @@ export default function App() {
     await run('createLearner', { classId: activeClass.id, learnerName, preferredName: learnerName });
   }
 
+  // The fast bulk endpoint we made
   async function addLearners(names) { 
     if (!activeClass?.id || !names?.length) return;
     await run('createLearners', { classId: activeClass.id, names }); 
   }
-  
-  async function importLearners(names) { await addLearners(names); }
+
+  // FIX: Make sure the Onboarding Flow uses the fast bulk endpoint too!
+  async function importLearners(names) { 
+    await addLearners(names); 
+  }
 
   async function removeLearner(learnerId) {
     if (!window.confirm('Remove this learner from the active class list? Their saved observations will be kept.')) return;
