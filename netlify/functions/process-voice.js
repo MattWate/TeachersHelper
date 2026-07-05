@@ -1,39 +1,35 @@
-// 1. STATIC import so Netlify correctly bundles the package
-import { GoogleGenAI } from '@google/genai';
-
 export async function handler(event) {
   if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method Not Allowed' };
 
   try {
     const { audioBase64 } = JSON.parse(event.body || '{}');
     if (!audioBase64) return { statusCode: 400, body: JSON.stringify({ error: 'No audio provided' }) };
+    if (!process.env.GEMINI_API_KEY) return { statusCode: 500, body: JSON.stringify({ error: 'GEMINI_API_KEY is not configured.' }) };
 
-    if (!process.env.GEMINI_API_KEY) {
-      return { statusCode: 500, body: JSON.stringify({ error: 'GEMINI_API_KEY is not configured in Netlify.' }) };
-    }
+    const payload = {
+      contents: [{
+        parts: [
+          { text: "Please transcribe this classroom observation accurately. Return ONLY the transcribed text, without any conversational filler, markdown formatting, or quotes." },
+          { inlineData: { mimeType: 'audio/mp3', data: audioBase64 } } // Still forcing mp3 for Gemini's validator
+        ]
+      }]
+    };
 
-    // 2. INITIALIZE safely inside the function to prevent boot crashes
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: [
-        {
-          inlineData: {
-            data: audioBase64,
-            // 3. THE MAGIC FIX: Force audio/mp3 to bypass Gemini's strict MIME validator. 
-            // Gemini's internal decoder will still successfully process the webm/mp4 bytes!
-            mimeType: 'audio/mp3' 
-          }
-        },
-        "Please transcribe this classroom observation accurately. Return ONLY the transcribed text, without any conversational filler, markdown formatting, or quotes."
-      ]
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error?.message || 'Gemini API Error');
+
+    const transcript = data.candidates[0].content.parts[0].text.trim();
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transcript: response.text.trim() })
+      body: JSON.stringify({ transcript })
     };
   } catch (error) {
     console.error("Transcription error:", error);
