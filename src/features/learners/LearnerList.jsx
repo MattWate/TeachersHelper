@@ -1,4 +1,4 @@
-export default function LearnerList({ activeClass, classes, learners, observations, selectedLearnerId, onSelectLearner, onSelectClass }) {
+export default function LearnerList({ activeClass, classes, learners, observations, selectedLearnerId, onSelectLearner, onSelectClass, onNavigateToSettings }) {
   // Find the currently selected learner and their note count so we can highlight them
   const selectedLearner = learners.find(l => l.id === selectedLearnerId) || learners[0];
   const noteCount = selectedLearner ? observations.filter(item => item.learner_id === selectedLearner.id).length : 0;
@@ -24,7 +24,20 @@ export default function LearnerList({ activeClass, classes, learners, observatio
         <p className="eyebrow" style={{ marginBottom: '8px' }}>Select Learner</p>
         
         {learners.length === 0 ? (
-          <p className="empty-state">Add learners to start capturing observations.</p>
+          <div className="empty-state-container">
+            <p className="empty-state" style={{ marginTop: 0, marginBottom: '16px' }}>
+              Add learners to start capturing observations.
+            </p>
+            {onNavigateToSettings && (
+              <button 
+                className="ghost-button" 
+                onClick={onNavigateToSettings} 
+                style={{ width: '100%' }}
+              >
+                Go to Settings to add learners
+              </button>
+            )}
+          </div>
         ) : (
           <>
             {/* The space-saving Dropdown */}
