@@ -21,9 +21,8 @@ export default function Dashboard({ session, dashboard, selectedClassId, selecte
     setReport(null);
   }
 
-  // Now it successfully accepts the 'options' from the ReportPanel
+  // Accepts the options (timeframe, contextMarks) from the ReportPanel
   async function generateReport(options) {
-    // And bundles them with the learnerId to send to the backend
     const draft = await onGenerateReport({ learnerId: learner.id, ...options });
     setReport(draft);
   }
@@ -51,7 +50,16 @@ export default function Dashboard({ session, dashboard, selectedClassId, selecte
       {/* Capture Tab: Focused purely on Learner selection and observation entry */}
       {currentTab === 'capture' && (
         <section className="workspace capture-workspace">
-          <LearnerList activeClass={activeClass} classes={dashboard.classes} learners={learners} observations={dashboard.observations} selectedLearnerId={learner?.id} onSelectLearner={onSelectLearner} onSelectClass={onSelectClass} />
+          <LearnerList 
+            activeClass={activeClass} 
+            classes={dashboard.classes} 
+            learners={learners} 
+            observations={dashboard.observations} 
+            selectedLearnerId={learner?.id} 
+            onSelectLearner={onSelectLearner} 
+            onSelectClass={onSelectClass}
+            onNavigateToSettings={() => setCurrentTab('settings')} 
+          />
           <ObservationCapture learner={learner} observations={observations} loading={loading} onSaveObservation={saveObservation} />
         </section>
       )}
@@ -59,7 +67,16 @@ export default function Dashboard({ session, dashboard, selectedClassId, selecte
       {/* Reports Tab: Focused on generating and reviewing text */}
       {currentTab === 'reports' && (
         <section className="workspace reports-workspace">
-          <LearnerList activeClass={activeClass} classes={dashboard.classes} learners={learners} observations={dashboard.observations} selectedLearnerId={learner?.id} onSelectLearner={onSelectLearner} onSelectClass={onSelectClass} />
+          <LearnerList 
+            activeClass={activeClass} 
+            classes={dashboard.classes} 
+            learners={learners} 
+            observations={dashboard.observations} 
+            selectedLearnerId={learner?.id} 
+            onSelectLearner={onSelectLearner} 
+            onSelectClass={onSelectClass}
+            onNavigateToSettings={() => setCurrentTab('settings')}
+          />
           <ReportPanel learner={learner} report={report} loading={loading} onGenerateReport={generateReport} />
         </section>
       )}
