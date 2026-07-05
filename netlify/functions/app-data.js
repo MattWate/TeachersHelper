@@ -1,5 +1,4 @@
 import { neon } from '@neondatabase/serverless';
-import { GoogleGenAI, Type } from '@google/genai';
 
 const jsonHeaders = {
   'Content-Type': 'application/json',
@@ -35,8 +34,6 @@ function getWeekStartDate(date = new Date()) {
   return copy.toISOString().slice(0, 10);
 }
 
-// Ensure this static import is at the VERY TOP of app-data.js:
-
 async function classifyObservation(text = '') {
   try {
     if (!process.env.GEMINI_API_KEY) {
@@ -44,33 +41,42 @@ async function classifyObservation(text = '') {
       return { category: 'General', sentiment: 'Observation', summary: text.slice(0, 180) };
     }
 
-    // Safely initialized inside the function!
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-    const responseSchema = {
-      type: Type.OBJECT,
-      properties: {
-        category: { type: Type.STRING },
-        sentiment: { type: Type.STRING },
-        aiSummary: { type: Type.STRING }
-      },
-      required: ["category", "sentiment", "aiSummary"]
+    const payload = {
+      contents: [{ parts: [{ text: `Analyze this classroom observation and extract the core category, sentiment (Observation/Improvement/Development area/Positive/Concern), and a short summary (under 180 chars). Observation: "${text}"` }] }],
+      generationConfig: {
+        temperature: 0.2,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "OBJECT",
+          properties: {
+            category: { type: "STRING" },
+            sentiment: { type: "STRING" },
+            aiSummary: { type: "STRING" }
+          },
+          required: ["category", "sentiment", "aiSummary"]
+        }
+      }
     };
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `Analyze this classroom observation and extract the core category, sentiment (Observation/Improvement/Development area/Positive/Concern), and a short summary (under 180 chars). Observation: "${text}"`,
-      config: { responseMimeType: 'application/json', responseSchema }
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     });
 
-    const data = JSON.parse(response.text);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error?.message || 'API Error');
+
+    const resultText = data.candidates[0].content.parts[0].text;
+    const classification = JSON.parse(resultText);
+    
     return {
-      category: data.category || 'General',
-      sentiment: data.sentiment || 'Observation',
-      summary: data.aiSummary || text.slice(0, 180)
+      category: classification.category || 'General',
+      sentiment: classification.sentiment || 'Observation',
+      summary: classification.aiSummary || text.slice(0, 180)
     };
   } catch (err) {
-    console.error('Gemini classification failed, falling back to defaults', err);
+    console.error('Gemini REST classification failed:', err);
     return { category: 'General', sentiment: 'Observation', summary: text.slice(0, 180) };
   }
 }
