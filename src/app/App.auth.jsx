@@ -100,7 +100,11 @@ export default function App() {
     await run('createLearner', { classId: activeClass.id, learnerName, preferredName: learnerName });
   }
 
-  async function addLearners(names) { for (const name of names) await addLearner(name); }
+  async function addLearners(names) { 
+    if (!activeClass?.id || !names?.length) return;
+    await run('createLearners', { classId: activeClass.id, names }); 
+  }
+  
   async function importLearners(names) { await addLearners(names); }
 
   async function removeLearner(learnerId) {
