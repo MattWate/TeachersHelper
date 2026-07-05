@@ -1,42 +1,38 @@
-import { GoogleGenAI, Type } from '@google/genai'; // Back to static import
-
 export async function handler(event) {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Method not allowed' }) };
-  }
+  if (event.httpMethod !== 'POST') return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
 
   try {
     const { text } = JSON.parse(event.body || '{}');
-    if (!text || typeof text !== 'string') {
-      return { statusCode: 400, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'A text field is required.' }) };
-    }
+    if (!text) return { statusCode: 400, body: JSON.stringify({ error: 'Text required.' }) };
+    if (!process.env.GEMINI_API_KEY) return { statusCode: 500, body: JSON.stringify({ error: 'GEMINI_API_KEY is not configured.' }) };
 
-    if (!process.env.GEMINI_API_KEY) {
-      return { statusCode: 500, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'GEMINI_API_KEY is not configured.' }) };
-    }
-
-    // Initialize safely inside
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-    const responseSchema = {
-      type: Type.OBJECT,
-      properties: {
-        category: { type: Type.STRING },
-        sentiment: { type: Type.STRING },
-        aiSummary: { type: Type.STRING }
-      },
-      required: ["category", "sentiment", "aiSummary"]
+    const payload = {
+      contents: [{ parts: [{ text: `You are a helpful assistant for a teacher. Analyze the following classroom observation about a learner. Extract the core category, the sentiment, and a brief summary. Observation: "${text}"` }] }],
+      generationConfig: {
+        temperature: 0.2,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "OBJECT",
+          properties: {
+            category: { type: "STRING" },
+            sentiment: { type: "STRING" },
+            aiSummary: { type: "STRING" }
+          },
+          required: ["category", "sentiment", "aiSummary"]
+        }
+      }
     };
 
-    const prompt = `You are a helpful assistant for a teacher. Analyze the following classroom observation about a learner. Extract the core category, the sentiment, and a brief summary. Observation: "${text}"`;
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: { responseMimeType: 'application/json', responseSchema, temperature: 0.2 }
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     });
 
-    const classification = JSON.parse(response.text);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error?.message || 'Gemini API Error');
+
+    const classification = JSON.parse(data.candidates[0].content.parts[0].text);
 
     return {
       statusCode: 200,
@@ -46,11 +42,10 @@ export async function handler(event) {
         summary: classification.aiSummary,
         category: classification.category,
         sentiment: classification.sentiment,
-        aiProvider: 'gemini'
+        aiProvider: 'gemini-rest'
       }),
     };
   } catch (error) {
-    console.error("Gemini API Error:", error);
-    return { statusCode: 500, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Failed to process observation with AI.', details: error.message }) };
+    return { statusCode: 500, body: JSON.stringify({ error: 'Failed to process observation.', details: error.message }) };
   }
 }
