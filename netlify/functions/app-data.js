@@ -185,6 +185,31 @@ async function createLearner(sql, payload) {
   return { profile, ...dashboard };
 }
 
+async function createLearners(sql, payload) {
+  const profile = await getProfile(sql, payload.email, payload.fullName);
+
+  if (!payload.classId || !payload.names || !payload.names.length) {
+    throw new Error('classId and a list of names are required.');
+  }
+
+  const classRows = await sql`select * from classes where id = ${payload.classId} and profile_id = ${profile.id}`;
+  if (!classRows[0]) throw new Error('Class not found for this teacher.');
+
+  // Process all names in a single, lightning-fast database connection
+  for (const name of payload.names) {
+    const cleanName = String(name).trim();
+    if (cleanName) {
+      await sql`
+        insert into learners (class_id, full_name, preferred_name)
+        values (${payload.classId}, ${cleanName}, ${cleanName})
+      `;
+    }
+  }
+
+  const dashboard = await loadDashboard(sql, profile.id);
+  return { profile, ...dashboard };
+}
+
 async function addObservation(sql, payload) {
   const profile = await getProfile(sql, payload.email, payload.fullName);
 
@@ -384,6 +409,7 @@ export async function handler(event) {
     if (action === 'bootstrap') return json(200, await bootstrap(sql, payload));
     if (action === 'createClass') return json(200, await createClass(sql, payload));
     if (action === 'createLearner') return json(200, await createLearner(sql, payload));
+    if (action === 'createLearners') return json(200, await createLearners(sql, payload));
     if (action === 'addObservation') return json(200, await addObservation(sql, payload));
     if (action === 'generateReport') return json(200, await generateReport(sql, payload));
 
