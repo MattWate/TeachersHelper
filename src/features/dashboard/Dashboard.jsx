@@ -21,8 +21,9 @@ export default function Dashboard({ session, dashboard, selectedClassId, selecte
     setReport(null);
   }
 
-  async function generateReport() {
-    const draft = await onGenerateReport(learner.id);
+  // Update this function to pass the options through!
+  async function generateReport(options) {
+    const draft = await onGenerateReport({ learnerId: learner.id, ...options });
     setReport(draft);
   }
 
