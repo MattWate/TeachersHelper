@@ -308,9 +308,10 @@ async function generateReport(sql, payload) {
     Instructions:
     1. Write the report draft. Ensure you strictly use the observations and marks as evidence.
     2. Do not invent events, fabricate behaviors, or make up grades.
-    3. If a section lacks evidence entirely, write what you can, and use the "questions" array to ask the teacher what you should include (e.g. "What did they struggle with in Maths?").
+    3. CRITICAL: Include BOTH positive achievements AND any negative, constructive, or concerning observations. Do not filter out struggles or development areas.
+   4. If a section lacks evidence entirely, write what you can, and use the "questions" array to ask the teacher what you should include.
   `;
-
+  
   // 2. CALL GEMINI
   const geminiPayload = {
     contents: [{ parts: [{ text: promptText }] }],
@@ -349,6 +350,7 @@ async function generateReport(sql, payload) {
   const draft = {
     learnerId: learnerRows[0].id,
     learnerName: learnerRows[0].full_name,
+    timeframe: payload.timeframe || 'End of Term Report',
     sections: draftResult.sections || [],
     questions: draftResult.questions || [],
   };
