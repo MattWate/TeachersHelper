@@ -309,7 +309,7 @@ async function generateReport(sql, payload) {
     1. Write the report draft. Ensure you strictly use the observations and marks as evidence.
     2. Do not invent events, fabricate behaviors, or make up grades.
     3. CRITICAL: Include BOTH positive achievements AND any negative, constructive, or concerning observations. Do not filter out struggles or development areas.
-   4. If a section lacks evidence entirely, write what you can, and use the "questions" array to ask the teacher what you should include.
+    4. If a section lacks evidence entirely, write a brief, general statement matching the requested tone. Then, use the "questions" array to suggest 1-2 specific things the teacher could observe next time to improve this section.
   `;
   
   // 2. CALL GEMINI
