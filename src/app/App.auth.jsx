@@ -100,13 +100,13 @@ export default function App() {
     await run('createLearner', { classId: activeClass.id, learnerName, preferredName: learnerName });
   }
 
-  // The fast bulk endpoint we made
+  // THE FIX: This safely sends arrays of names to your lightning-fast database endpoint
   async function addLearners(names) { 
     if (!activeClass?.id || !names?.length) return;
     await run('createLearners', { classId: activeClass.id, names }); 
   }
 
-  // FIX: Make sure the Onboarding Flow uses the fast bulk endpoint too!
+  // THE FIX: Forces the Onboarding Flow to use that same fast endpoint!
   async function importLearners(names) { 
     await addLearners(names); 
   }
@@ -131,7 +131,6 @@ export default function App() {
 
   async function saveObservation(payload) { await run('addObservation', payload); }
   
-  // Accepts the bundled options and passes them straight to the API
   async function generateReport(options) { 
     const data = await run('generateReport', options); 
     return data?.draft || null; 
@@ -140,7 +139,6 @@ export default function App() {
   if (checking) return <main className="app-shell"><div className="report-placeholder">Checking your sign-in...</div></main>;
   if (!session) return <SignIn onSignIn={handleSignIn} loading={loading} error={error} />;
   
-  // NEW: Catch backend errors during load instead of hanging forever
   if (error && !dashboard) return (
     <main className="app-shell login-shell">
       <div className="error-banner" style={{ padding: '32px', textAlign: 'center', maxWidth: '400px' }}>
@@ -152,6 +150,8 @@ export default function App() {
   );
 
   if (!dashboard) return <main className="app-shell"><div className="report-placeholder">Opening your workspace...</div></main>;
+  
+  if (!dashboard.classes.length || !learners.length) return <OnboardingFlow session={session} hasClass={Boolean(dashboard.classes.length)} hasLearners={Boolean(learners.length)} loading={loading} error={error} onLogout={logout} onCreateClass={createClass} onAddLearner={addLearner} onImportLearners={importLearners} />;
   
   return <Dashboard session={session} dashboard={dashboard} selectedClassId={activeClass?.id} selectedLearnerId={selectedLearnerId} loading={loading} error={error} onLogout={logout} onSelectClass={setSelectedClassId} onSelectLearner={setSelectedLearnerId} onSaveObservation={saveObservation} onGenerateReport={generateReport} onAddLearners={addLearners} onRemoveLearner={removeLearner} />;
 }
