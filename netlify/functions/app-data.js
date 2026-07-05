@@ -81,63 +81,6 @@ async function classifyObservation(text = '') {
   }
 }
 
-function generateLearnerReport({ learner, observations, reportStructure }) {
-  const learnerNotes = observations.filter((observation) => observation.learner_id === learner.id || observation.learnerId === learner.id);
-  const notesText = learnerNotes.map((observation) => observation.cleaned_text || observation.original_text || observation.text || '').join(' ');
-
-  const hasReading = /read|reading|book|fluency/i.test(notesText);
-  const hasMaths = /math|number|times table|calculation|multiply|multiplication/i.test(notesText);
-  const hasSocial = /friend|helped|kind|group|settle/i.test(notesText);
-  const hasFocus = /focus|concentration|distract/i.test(notesText);
-
-  const preferredName = learner.preferred_name || learner.preferredName || learner.full_name || learner.fullName;
-  const sections = reportStructure.sections || reportStructure.sections_json || [];
-
-  const sectionDrafts = sections.map((section) => {
-    const sectionName = String(section.name || '').toLowerCase();
-
-    if (sectionName.includes('english') || sectionName.includes('reading') || sectionName.includes('language')) {
-      return {
-        sectionName: section.name,
-        text: hasReading
-          ? `${preferredName} has shown encouraging progress in reading this term. The classroom observations point to growing confidence and a greater willingness to engage with texts, especially when reading aloud. Continued regular reading practice will help ${preferredName} build fluency and strengthen comprehension further.`
-          : `${preferredName} is continuing to develop important language skills. A few more specific observations about reading, writing, spelling or comprehension would help make this section warmer and more personal.`,
-      };
-    }
-
-    if (sectionName.includes('math')) {
-      return {
-        sectionName: section.name,
-        text: hasMaths
-          ? `${preferredName} is developing confidence in Maths and benefits from regular practice with key number facts. The observations highlight an area to keep strengthening, especially around multiplication recall and accuracy. Short, consistent practice will support quicker and more confident work.`
-          : `${preferredName} is working steadily in Maths. Adding observations about number work, calculations or problem-solving would help produce a more specific and balanced comment.`,
-      };
-    }
-
-    const strengths = [];
-    if (hasSocial) strengths.push('positive social awareness');
-    if (hasFocus) strengths.push('a need for gentle support with focus during longer tasks');
-    if (learnerNotes.length > 0 && strengths.length === 0) strengths.push('steady classroom engagement');
-
-    return {
-      sectionName: section.name,
-      text: `${preferredName} is a valued member of the class. ${strengths.length ? `The observations from this term point to ${strengths.join(' and ')}.` : 'A few personal observations would help make this general comment warmer and more specific.'} With continued encouragement, ${preferredName} can keep building confidence and independence next term.`,
-    };
-  });
-
-  const questions = [];
-  if (learnerNotes.length < 2) questions.push(`What is one thing you want to highlight about ${preferredName} this term?`);
-  if (!hasSocial) questions.push(`Is there anything worth mentioning about ${preferredName}'s friendships, confidence or classroom contribution?`);
-  if (!hasMaths) questions.push(`Is there a specific Maths goal ${preferredName} should focus on next term?`);
-
-  return {
-    learnerId: learner.id,
-    learnerName: learner.full_name || learner.fullName,
-    sections: sectionDrafts,
-    questions: questions.slice(0, 3),
-  };
-}
-
 async function getProfile(sql, email, fullName) {
   const cleanEmail = normaliseEmail(email);
 
@@ -313,8 +256,7 @@ async function generateReport(sql, payload) {
   const profile = await getProfile(sql, payload.email, payload.fullName);
 
   const learnerRows = await sql`
-    select learners.*
-    from learners
+    select learners.* from learners
     join classes on classes.id = learners.class_id
     where learners.id = ${payload.learnerId} and classes.profile_id = ${profile.id}
   `;
@@ -334,6 +276,7 @@ async function generateReport(sql, payload) {
     limit 1
   `;
 
+  // Standardize the structure if none exists
   const reportStructure = structureRows[0]
     ? { sections: structureRows[0].sections_json, tone: structureRows[0].tone }
     : {
@@ -345,12 +288,72 @@ async function generateReport(sql, payload) {
         ],
       };
 
-  const draft = generateLearnerReport({
-    learner: learnerRows[0],
-    observations: observationRows,
-    reportStructure,
+  const preferredName = learnerRows[0].preferred_name || learnerRows[0].full_name;
+
+  // 1. THE AI PROMPT
+  const promptText = `
+    You are an expert teacher's assistant.
+    Write a "${payload.timeframe || 'End of Term Report'}" for the learner named ${preferredName}.
+
+    Here are the teacher's classroom observations over this period:
+    ${observationRows.length > 0 ? observationRows.map(o => `- [${o.category}] ${o.cleaned_text}`).join('\n') : 'No observations recorded yet.'}
+
+    Here are the learner's marks and additional context provided by the teacher:
+    ${payload.contextMarks || 'No additional marks or context provided.'}
+
+    Report Structure and Tone:
+    Tone: ${reportStructure.tone}
+    Sections required: ${JSON.stringify(reportStructure.sections)}
+
+    Instructions:
+    1. Write the report draft. Ensure you strictly use the observations and marks as evidence.
+    2. Do not invent events, fabricate behaviors, or make up grades.
+    3. If a section lacks evidence entirely, write what you can, and use the "questions" array to ask the teacher what you should include (e.g. "What did they struggle with in Maths?").
+  `;
+
+  // 2. CALL GEMINI
+  const geminiPayload = {
+    contents: [{ parts: [{ text: promptText }] }],
+    generationConfig: {
+      temperature: 0.3,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "OBJECT",
+        properties: {
+          sections: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: { sectionName: { type: "STRING" }, text: { type: "STRING" } },
+              required: ["sectionName", "text"]
+            }
+          },
+          questions: { type: "ARRAY", items: { type: "STRING" } }
+        },
+        required: ["sections", "questions"]
+      }
+    }
+  };
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(geminiPayload)
   });
 
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error?.message || 'Gemini API Error');
+
+  const draftResult = JSON.parse(data.candidates[0].content.parts[0].text);
+
+  const draft = {
+    learnerId: learnerRows[0].id,
+    learnerName: learnerRows[0].full_name,
+    sections: draftResult.sections || [],
+    questions: draftResult.questions || [],
+  };
+
+  // 3. SAVE TO NEON
   await sql`
     insert into report_drafts (profile_id, class_id, learner_id, report_structure_id, draft_json, final_text, status)
     values (
