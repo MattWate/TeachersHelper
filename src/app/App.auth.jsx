@@ -122,8 +122,13 @@ export default function App() {
   }
 
   async function saveObservation(payload) { await run('addObservation', payload); }
-  async function generateReport(learnerId) { const data = await run('generateReport', { learnerId }); return data?.draft || null; }
-
+  
+  // Now accepts the whole options object and passes it straight to the backend
+  async function generateReport(options) { 
+    const data = await run('generateReport', options); 
+    return data?.draft || null; 
+  }
+  
   if (checking) return <main className="app-shell"><div className="report-placeholder">Checking your sign-in...</div></main>;
   if (!session) return <SignIn onSignIn={handleSignIn} loading={loading} error={error} />;
   
