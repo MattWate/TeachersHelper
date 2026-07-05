@@ -81,20 +81,18 @@ export default function App() {
 
   async function addLearner(learnerName) {
     if (!activeClass?.id) return;
-    setLoading(true);
-    setError('');
-    try {
-      const data = await apiRequest('createLearner', { ...session, classId: activeClass.id, learnerName, preferredName: learnerName });
-      setDashboard(mapDashboard(data));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    await run('createLearner', { classId: activeClass.id, learnerName, preferredName: learnerName });
   }
 
-  async function importLearners(names) {
-    for (const name of names) await addLearner(name);
+  // The fast bulk endpoint we made
+  async function addLearners(names) { 
+    if (!activeClass?.id || !names?.length) return;
+    await run('createLearners', { classId: activeClass.id, names }); 
+  }
+
+  // FIX: Make sure the Onboarding Flow uses the fast bulk endpoint too!
+  async function importLearners(names) { 
+    await addLearners(names); 
   }
 
   async function saveObservation(payload) {
