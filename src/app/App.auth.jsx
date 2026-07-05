@@ -123,7 +123,7 @@ export default function App() {
 
   async function saveObservation(payload) { await run('addObservation', payload); }
   
-  // Now accepts the whole options object and passes it straight to the backend
+  // Accepts the bundled options and passes them straight to the API
   async function generateReport(options) { 
     const data = await run('generateReport', options); 
     return data?.draft || null; 
