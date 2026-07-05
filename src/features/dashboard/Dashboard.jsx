@@ -21,8 +21,9 @@ export default function Dashboard({ session, dashboard, selectedClassId, selecte
     setReport(null);
   }
 
-  // Update this function to pass the options through!
+  // Now it successfully accepts the 'options' from the ReportPanel
   async function generateReport(options) {
+    // And bundles them with the learnerId to send to the backend
     const draft = await onGenerateReport({ learnerId: learner.id, ...options });
     setReport(draft);
   }
