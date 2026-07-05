@@ -30,7 +30,7 @@ export default function ReportPanel({ learner, report, loading, onGenerateReport
           <h2>Generate from observations</h2>
         </div>
         <button className="primary-button" onClick={handleGenerate} disabled={loading || !learner}>
-          <Sparkles size={16} /> {loading ? 'Drafting AI...' : 'Generate'}
+          <Sparkles size={16} /> {loading ? 'Drafting report...' : 'Generate'}
         </button>
       </div>
 
@@ -71,7 +71,7 @@ export default function ReportPanel({ learner, report, loading, onGenerateReport
         </div>
       ) : (
         <div className="draft-output">
-          <h3>{report.learnerName} - {timeframe}</h3>
+          <h3>{report.learnerName} - {report.timeframe || timeframe}</h3>
           
           {report.sections.map((section) => (
             <article key={section.sectionName} className="draft-section">
