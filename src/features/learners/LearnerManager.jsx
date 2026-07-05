@@ -3,16 +3,26 @@ import { UploadCloud, Loader } from 'lucide-react';
 import { parseLearnerNames } from './learnerBatchParser.js';
 
 export default function LearnerManager({ learners, loading, onAddLearners, onRemoveLearner }) {
-  const [open, setOpen] = useState(false);
+  const [userOpened, setUserOpened] = useState(false);
   const [namesText, setNamesText] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const names = parseLearnerNames(namesText);
 
+  // ALWAYS force the form open if the class is completely empty
+  const isOpen = userOpened || learners.length === 0;
+
   async function addNames() {
     if (!names.length) return;
+    
+    // Safety catch: prevent silent failures if the prop wasn't passed down
+    if (!onAddLearners) {
+      alert("Error: The 'onAddLearners' function is missing from the parent component.");
+      return;
+    }
+
     await onAddLearners(names);
     setNamesText('');
-    setOpen(false);
+    setUserOpened(false); // Close the manager after successful addition
   }
 
   async function handleFileUpload(event) {
@@ -22,7 +32,6 @@ export default function LearnerManager({ learners, loading, onAddLearners, onRem
     setIsUploading(true);
 
     if (file.type === 'application/pdf') {
-      // Send PDFs to Gemini to extract the text
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onloadend = async () => {
@@ -45,7 +54,6 @@ export default function LearnerManager({ learners, loading, onAddLearners, onRem
         }
       };
     } else {
-      // Handle CSV and TXT instantly in the browser
       const reader = new FileReader();
       reader.onload = (e) => {
         setNamesText(prev => prev + (prev ? '\n' : '') + e.target.result);
@@ -64,12 +72,15 @@ export default function LearnerManager({ learners, loading, onAddLearners, onRem
           <p className="eyebrow">Class list</p>
           <h2>Manage learners</h2>
         </div>
-        <button className="ghost-button" type="button" onClick={() => setOpen(!open)}>
-          {open ? 'Close' : 'Edit list'}
-        </button>
+        {/* Only show the close/edit button if there are actually learners to hide */}
+        {learners.length > 0 && (
+          <button className="ghost-button" type="button" onClick={() => setUserOpened(!isOpen)}>
+            {isOpen ? 'Close' : 'Edit list'}
+          </button>
+        )}
       </div>
 
-      {!open ? (
+      {!isOpen ? (
         <p className="empty-state">{learners.length} active learners in this class.</p>
       ) : (
         <div className="note-form">
@@ -103,20 +114,24 @@ export default function LearnerManager({ learners, loading, onAddLearners, onRem
             {loading ? 'Adding...' : 'Add learners'}
           </button>
 
-          <hr style={{ border: 0, borderTop: '1px solid var(--outline)', margin: '24px 0' }} />
-
-          <h3>Current Class List</h3>
-          <div className="learner-list management-list">
-            {learners.length === 0 && <p className="empty-state">No learners in this class yet.</p>}
-            {learners.map((learner) => (
-              <div className="learner-row" key={learner.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--outline-strong)'}}>
-                <span>{learner.full_name}</span>
-                <button className="text-button danger-text" type="button" onClick={() => onRemoveLearner(learner.id)} style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
-                  Remove
-                </button>
+          {learners.length > 0 && (
+            <>
+              <hr style={{ border: 0, borderTop: '1px solid var(--outline)', margin: '24px 0' }} />
+              <h3>Current Class List</h3>
+              <div className="learner-list management-list">
+                {learners.map((learner) => (
+                  <div className="learner-row" key={learner.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--outline-strong)'}}>
+                    <span>{learner.full_name}</span>
+                    {onRemoveLearner && (
+                      <button className="text-button danger-text" type="button" onClick={() => onRemoveLearner(learner.id)} style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </div>
       )}
     </section>
