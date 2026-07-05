@@ -83,7 +83,9 @@ export default function ReportPanel({ learner, report, loading, onGenerateReport
 
           {report.questions && report.questions.length > 0 && (
             <div className="teacher-prompts">
-              <h4>AI Needs More Detail:</h4>
+              <h4 style={{ color: 'var(--secondary)', marginBottom: '8px' }}>
+                This report could be more meaningful if there were more notes about {report.learnerName}. Keep making notes!
+              </h4>
               {report.questions.map((question) => <p key={question}>• {question}</p>)}
             </div>
           )}
