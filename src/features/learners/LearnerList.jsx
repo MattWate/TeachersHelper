@@ -1,7 +1,8 @@
 export default function LearnerList({ activeClass, classes, learners, observations, selectedLearnerId, onSelectLearner, onSelectClass, onNavigateToSettings }) {
-  // Find the currently selected learner and their note count so we can highlight them
   const selectedLearner = learners.find(l => l.id === selectedLearnerId) || learners[0];
-  const noteCount = selectedLearner ? observations.filter(item => item.learner_id === selectedLearner.id).length : 0;
+  
+  // Don't calculate notes for 'auto'
+  const noteCount = selectedLearner && selectedLearner.id !== 'auto' ? observations.filter(item => item.learner_id === selectedLearner.id).length : 0;
 
   return (
     <aside className="panel learner-panel">
@@ -29,18 +30,13 @@ export default function LearnerList({ activeClass, classes, learners, observatio
               Add learners to start capturing observations.
             </p>
             {onNavigateToSettings && (
-              <button 
-                className="ghost-button" 
-                onClick={onNavigateToSettings} 
-                style={{ width: '100%' }}
-              >
+              <button className="ghost-button" onClick={onNavigateToSettings} style={{ width: '100%' }}>
                 Go to Settings to add learners
               </button>
             )}
           </div>
         ) : (
           <>
-            {/* The space-saving Dropdown */}
             <select 
               className="select-input" 
               value={selectedLearnerId || ''} 
@@ -48,20 +44,23 @@ export default function LearnerList({ activeClass, classes, learners, observatio
               style={{ marginBottom: '12px', cursor: 'pointer' }}
             >
               {learners.map((learner) => {
-                const count = observations.filter((item) => item.learner_id === learner.id).length;
+                const countStr = learner.id === 'auto' ? '' : ` (${observations.filter((item) => item.learner_id === learner.id).length} notes)`;
                 return (
                   <option key={learner.id} value={learner.id}>
-                    {learner.full_name} ({count} notes)
+                    {learner.full_name}{countStr}
                   </option>
                 );
               })}
             </select>
 
-            {/* The Highlighted Selected Learner */}
             {selectedLearner && (
               <div className="learner-item active" style={{ cursor: 'default' }}>
                 <span>{selectedLearner.full_name}</span>
-                <small>{noteCount} notes</small>
+                {selectedLearner.id === 'auto' ? (
+                  <small>Speeds up recording</small>
+                ) : (
+                  <small>{noteCount} notes</small>
+                )}
               </div>
             )}
           </>
