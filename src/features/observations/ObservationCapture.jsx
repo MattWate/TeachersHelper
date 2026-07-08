@@ -1,14 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { displayLearnerName, wordCount } from '../../shared/dashboardModel.js';
-import { Mic, Square } from 'lucide-react';
+import { Mic, Square, MoreVertical } from 'lucide-react';
 
-export default function ObservationCapture({ learner, classLearners = [], observations, loading, onSaveObservation }) {
+export default function ObservationCapture({ learner, classLearners = [], observations, loading, onSaveObservation, onReassignObservation }) {
   const [noteType, setNoteType] = useState('voice');
   const [text, setText] = useState('');
   
+  // Audio state
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [timeLeft, setTimeLeft] = useState(20);
+  
+  // Reassign state
+  const [reassigningId, setReassigningId] = useState(null);
   
   const timerRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -65,7 +69,6 @@ export default function ObservationCapture({ learner, classLearners = [], observ
       reader.onloadend = async () => {
         const base64data = reader.result.split(',')[1];
         
-        // 1. Send the audio AND the class list
         const response = await fetch('/.netlify/functions/process-voice', {
           method: 'POST',
           body: JSON.stringify({ 
@@ -78,10 +81,7 @@ export default function ObservationCapture({ learner, classLearners = [], observ
         const data = await response.json();
         
         if (response.ok && data.transcript) {
-          
-          // 2. MULTI-LEARNER / AUTO-ASSIGN LOGIC
           if (learner.id === 'auto') {
-            // Find which IDs match the names the AI extracted
             const matchedLearners = classLearners.filter(l => (data.detectedNames || []).includes(l.full_name));
             
             if (matchedLearners.length === 0) {
@@ -89,10 +89,9 @@ export default function ObservationCapture({ learner, classLearners = [], observ
               setText(data.transcript);
               setNoteType('typed');
             } else {
-              // Magic Multi-Save! Loop through and save a copy for EVERY child mentioned
               for (const matched of matchedLearners) {
                 await onSaveObservation({
-                  learnerId: matched.id, // Overrides 'auto'
+                  learnerId: matched.id,
                   observationType: 'voice',
                   text: data.transcript,
                   durationSeconds: Math.max(1, 20 - timeLeft)
@@ -101,7 +100,6 @@ export default function ObservationCapture({ learner, classLearners = [], observ
               alert(`Successfully saved observation to: ${matchedLearners.map(m => m.full_name).join(', ')}`);
             }
           } else {
-            // Standard single-learner save
             await onSaveObservation({ 
               observationType: 'voice', 
               text: data.transcript, 
@@ -204,10 +202,48 @@ export default function ObservationCapture({ learner, classLearners = [], observ
             <article key={observation.id} className="observation-card">
               <div>
                 <strong>{observation.category || 'General'}</strong>
-                <span>{observation.sentiment || 'Observation'}</span>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <span>{observation.sentiment || 'Observation'}</span>
+                  {/* The new Kebab Menu Button */}
+                  <button 
+                    className="ghost-button" 
+                    style={{ minHeight: 'auto', padding: '4px', margin: '-4px -4px -4px 0', border: 'none', background: 'transparent', color: 'var(--text-muted)' }} 
+                    onClick={() => setReassigningId(observation.id)} 
+                    title="Reassign to another learner"
+                    disabled={loading}
+                  >
+                    <MoreVertical size={16} />
+                  </button>
+                </div>
               </div>
               <p>{observation.cleaned_text || observation.original_text}</p>
-              <small>{new Date(observation.created_at).toLocaleString()}</small>
+              
+              {/* If reassignment is active, swap the timestamp for the inline dropdown */}
+              {reassigningId === observation.id ? (
+                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                  <select 
+                    className="select-input" 
+                    style={{ minHeight: '36px', padding: '4px 8px', flex: 1, margin: 0 }}
+                    onChange={async (e) => {
+                      if (e.target.value) {
+                        setReassigningId(null);
+                        await onReassignObservation({ observationId: observation.id, newLearnerId: e.target.value });
+                      }
+                    }}
+                    defaultValue=""
+                  >
+                    <option value="" disabled>Move note to learner...</option>
+                    {classLearners.map(l => (
+                      <option key={l.id} value={l.id} disabled={l.id === observation.learner_id}>
+                        {l.full_name}
+                      </option>
+                    ))}
+                  </select>
+                  <button className="ghost-button" style={{ minHeight: '36px', padding: '4px 12px' }} onClick={() => setReassigningId(null)}>Cancel</button>
+                </div>
+              ) : (
+                <small>{new Date(observation.created_at).toLocaleString()}</small>
+              )}
             </article>
           ))
         )}
