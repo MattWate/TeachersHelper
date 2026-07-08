@@ -234,24 +234,6 @@ async function addObservation(sql, payload) {
     }
   }
 
-  async function reassignObservation(sql, payload) {
-  const profile = await getProfile(sql, payload.email, payload.fullName);
-
-  if (!payload.observationId || !payload.newLearnerId) {
-    throw new Error('observationId and newLearnerId are required.');
-  }
-
-  // Update the observation to point to the new learner
-  await sql`
-    update observations
-    set learner_id = ${payload.newLearnerId}, updated_at = now()
-    where id = ${payload.observationId} and profile_id = ${profile.id}
-  `;
-
-  const dashboard = await loadDashboard(sql, profile.id);
-  return { profile, ...dashboard };
-}
-
   const classification = await classifyObservation(payload.text);
 
   await sql`
@@ -295,6 +277,25 @@ async function addObservation(sql, payload) {
   return { profile, ...dashboard };
 }
 
+// --- NOW IT IS OUTSIDE, IN THE MAIN SCOPE! ---
+async function reassignObservation(sql, payload) {
+  const profile = await getProfile(sql, payload.email, payload.fullName);
+
+  if (!payload.observationId || !payload.newLearnerId) {
+    throw new Error('observationId and newLearnerId are required.');
+  }
+
+  // Update the observation to point to the new learner
+  await sql`
+    update observations
+    set learner_id = ${payload.newLearnerId}, updated_at = now()
+    where id = ${payload.observationId} and profile_id = ${profile.id}
+  `;
+
+  const dashboard = await loadDashboard(sql, profile.id);
+  return { profile, ...dashboard };
+}
+// ---------------------------------------------
 async function generateReport(sql, payload) {
   const profile = await getProfile(sql, payload.email, payload.fullName);
 
