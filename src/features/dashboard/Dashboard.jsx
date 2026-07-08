@@ -7,7 +7,7 @@ import LearnerManager from '../learners/LearnerManager.jsx';
 import ObservationCapture from '../observations/ObservationCapture.jsx';
 import ReportPanel from '../reports/ReportPanel.jsx';
 
-export default function Dashboard({ session, dashboard, selectedClassId, selectedLearnerId, loading, error, onLogout, onSelectClass, onSelectLearner, onSaveObservation, onGenerateReport, onAddLearners, onRemoveLearner }) {
+export default function Dashboard({ session, dashboard, selectedClassId, selectedLearnerId, loading, error, onLogout, onSelectClass, onSelectLearner, onSaveObservation, onGenerateReport, onAddLearners, onRemoveLearner, onReassignObservation }) {
   const [currentTab, setCurrentTab] = useState('capture');
   const [report, setReport] = useState(null);
   
@@ -64,7 +64,7 @@ export default function Dashboard({ session, dashboard, selectedClassId, selecte
             onNavigateToSettings={() => setCurrentTab('settings')} 
           />
           {/* Note: We pass 'realLearners' so the transcription API gets the real names */}
-          <ObservationCapture learner={learner} classLearners={realLearners} observations={observations} loading={loading} onSaveObservation={saveObservation} />
+          <ObservationCapture learner={learner} classLearners={realLearners} observations={observations} loading={loading} onSaveObservation={saveObservation} onReassignObservation={onReassignObservation} />
         </section>
       )}
 
