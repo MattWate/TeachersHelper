@@ -130,6 +130,7 @@ export default function App() {
   }
 
   async function saveObservation(payload) { await run('addObservation', payload); }
+  async function reassignObservation(payload) { await run('reassignObservation', payload); }
   
   async function generateReport(options) { 
     const data = await run('generateReport', options); 
@@ -153,5 +154,5 @@ export default function App() {
   
   if (!dashboard.classes.length || !learners.length) return <OnboardingFlow session={session} hasClass={Boolean(dashboard.classes.length)} hasLearners={Boolean(learners.length)} loading={loading} error={error} onLogout={logout} onCreateClass={createClass} onAddLearner={addLearner} onImportLearners={importLearners} />;
   
-  return <Dashboard session={session} dashboard={dashboard} selectedClassId={activeClass?.id} selectedLearnerId={selectedLearnerId} loading={loading} error={error} onLogout={logout} onSelectClass={setSelectedClassId} onSelectLearner={setSelectedLearnerId} onSaveObservation={saveObservation} onGenerateReport={generateReport} onAddLearners={addLearners} onRemoveLearner={removeLearner} />;
+  return <Dashboard session={session} dashboard={dashboard} selectedClassId={activeClass?.id} selectedLearnerId={selectedLearnerId} loading={loading} error={error} onLogout={logout} onSelectClass={setSelectedClassId} onSelectLearner={setSelectedLearnerId} onSaveObservation={saveObservation} onGenerateReport={generateReport} onAddLearners={addLearners} onRemoveLearner={removeLearner} onReassignObservation={reassignObservation} />;
 }
