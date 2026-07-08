@@ -23,6 +23,7 @@ export default function App() {
   const learners = getClassLearners(dashboard, activeClass?.id);
 
   useEffect(() => { checkAuth(); }, []);
+  
   useEffect(() => {
     if (!dashboard) return;
     const nextClassId = selectedClassId || dashboard.classes[0]?.id || null;
@@ -100,13 +101,11 @@ export default function App() {
     await run('createLearner', { classId: activeClass.id, learnerName, preferredName: learnerName });
   }
 
-  // THE FIX: This safely sends arrays of names to your lightning-fast database endpoint
   async function addLearners(names) { 
     if (!activeClass?.id || !names?.length) return;
     await run('createLearners', { classId: activeClass.id, names }); 
   }
 
-  // THE FIX: Forces the Onboarding Flow to use that same fast endpoint!
   async function importLearners(names) { 
     await addLearners(names); 
   }
@@ -130,6 +129,8 @@ export default function App() {
   }
 
   async function saveObservation(payload) { await run('addObservation', payload); }
+  
+  // HERE IS THE MISSING FUNCTION!
   async function reassignObservation(payload) { await run('reassignObservation', payload); }
   
   async function generateReport(options) { 
