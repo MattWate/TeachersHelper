@@ -234,6 +234,24 @@ async function addObservation(sql, payload) {
     }
   }
 
+  async function reassignObservation(sql, payload) {
+  const profile = await getProfile(sql, payload.email, payload.fullName);
+
+  if (!payload.observationId || !payload.newLearnerId) {
+    throw new Error('observationId and newLearnerId are required.');
+  }
+
+  // Update the observation to point to the new learner
+  await sql`
+    update observations
+    set learner_id = ${payload.newLearnerId}, updated_at = now()
+    where id = ${payload.observationId} and profile_id = ${profile.id}
+  `;
+
+  const dashboard = await loadDashboard(sql, profile.id);
+  return { profile, ...dashboard };
+}
+
   const classification = await classifyObservation(payload.text);
 
   await sql`
@@ -411,6 +429,7 @@ export async function handler(event) {
     if (action === 'createLearner') return json(200, await createLearner(sql, payload));
     if (action === 'createLearners') return json(200, await createLearners(sql, payload));
     if (action === 'addObservation') return json(200, await addObservation(sql, payload));
+    if (action === 'reassignObservation') return json(200, await reassignObservation(sql, payload));
     if (action === 'generateReport') return json(200, await generateReport(sql, payload));
 
     return json(400, { error: `Unknown action: ${action}` });
