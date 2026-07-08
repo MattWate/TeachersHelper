@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { displayLearnerName, wordCount } from '../../shared/dashboardModel.js';
-import { Mic, Square, MoreVertical } from 'lucide-react';
+import { Mic, Square } from 'lucide-react';
 
 export default function ObservationCapture({ learner, classLearners = [], observations, loading, onSaveObservation, onReassignObservation }) {
   const [noteType, setNoteType] = useState('voice');
@@ -204,42 +204,47 @@ export default function ObservationCapture({ learner, classLearners = [], observ
                 <strong>{observation.category || 'General'}</strong>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <span>{observation.sentiment || 'Observation'}</span>
-                  {/* The new Kebab Menu Button */}
+                  {/* The clearer Move Button replacing the Kebab */}
                   <button 
                     className="ghost-button" 
-                    style={{ minHeight: 'auto', padding: '4px', margin: '-4px -4px -4px 0', border: 'none', background: 'transparent', color: 'var(--text-muted)' }} 
+                    style={{ minHeight: 'auto', padding: '4px 10px', margin: '-4px -4px -4px 0', background: 'var(--surface)', color: 'var(--text-muted)', fontSize: '0.75rem', border: '1px solid var(--outline)' }} 
                     onClick={() => setReassigningId(observation.id)} 
-                    title="Reassign to another learner"
                     disabled={loading}
                   >
-                    <MoreVertical size={16} />
+                    Move
                   </button>
                 </div>
               </div>
               <p>{observation.cleaned_text || observation.original_text}</p>
               
-              {/* If reassignment is active, swap the timestamp for the inline dropdown */}
+              {/* The expanded, mobile-friendly Reassignment block */}
               {reassigningId === observation.id ? (
-                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                  <select 
-                    className="select-input" 
-                    style={{ minHeight: '36px', padding: '4px 8px', flex: 1, margin: 0 }}
-                    onChange={async (e) => {
-                      if (e.target.value) {
-                        setReassigningId(null);
-                        await onReassignObservation({ observationId: observation.id, newLearnerId: e.target.value });
-                      }
-                    }}
-                    defaultValue=""
-                  >
-                    <option value="" disabled>Move note to learner...</option>
-                    {classLearners.map(l => (
-                      <option key={l.id} value={l.id} disabled={l.id === observation.learner_id}>
-                        {l.full_name}
-                      </option>
-                    ))}
-                  </select>
-                  <button className="ghost-button" style={{ minHeight: '36px', padding: '4px 12px' }} onClick={() => setReassigningId(null)}>Cancel</button>
+                <div style={{ marginTop: '12px', padding: '12px', background: 'var(--primary-container)', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(189, 147, 216, 0.55)' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', color: 'var(--primary)', fontSize: '0.85rem' }}>
+                    <strong>Move Observation</strong><br/>
+                    Reassign this note to a different learner:
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <select 
+                      className="select-input" 
+                      style={{ minHeight: '40px', padding: '8px 12px', flex: '1 1 200px', margin: 0 }}
+                      onChange={async (e) => {
+                        if (e.target.value) {
+                          setReassigningId(null);
+                          await onReassignObservation({ observationId: observation.id, newLearnerId: e.target.value });
+                        }
+                      }}
+                      defaultValue=""
+                    >
+                      <option value="" disabled>Select learner...</option>
+                      {classLearners.map(l => (
+                        <option key={l.id} value={l.id} disabled={l.id === observation.learner_id}>
+                          {l.full_name}
+                        </option>
+                      ))}
+                    </select>
+                    <button className="ghost-button" style={{ minHeight: '40px', padding: '8px 16px', background: 'white' }} onClick={() => setReassigningId(null)}>Cancel</button>
+                  </div>
                 </div>
               ) : (
                 <small>{new Date(observation.created_at).toLocaleString()}</small>
