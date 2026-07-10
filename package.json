@@ -15,6 +15,7 @@
     "@neondatabase/serverless": "latest",
     "@vitejs/plugin-react": "latest",
     "vite": "latest",
+    "xlsx": "^0.18.5",
     "react": "latest",
     "react-dom": "latest",
     "lucide-react": "latest"
