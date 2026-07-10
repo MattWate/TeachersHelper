@@ -115,9 +115,43 @@ create table if not exists report_drafts (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists mark_uploads (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references profiles(id) on delete cascade,
+  class_id uuid not null references classes(id) on delete cascade,
+  file_name text,
+  period_label text,
+  term text,
+  academic_year text,
+  status text not null default 'confirmed',
+  raw_extract_json jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists marks (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references profiles(id) on delete cascade,
+  class_id uuid not null references classes(id) on delete cascade,
+  learner_id uuid not null references learners(id) on delete cascade,
+  mark_upload_id uuid references mark_uploads(id) on delete set null,
+  subject text not null,
+  mark_display text,
+  mark_value numeric,
+  out_of numeric,
+  period_label text,
+  term text,
+  academic_year text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create index if not exists idx_classes_profile_id on classes(profile_id);
 create index if not exists idx_learners_class_id on learners(class_id);
 create index if not exists idx_observations_profile_id on observations(profile_id);
 create index if not exists idx_observations_learner_id on observations(learner_id);
 create index if not exists idx_observations_class_id on observations(class_id);
 create index if not exists idx_voice_usage_profile_week on voice_usage(profile_id, week_start_date);
+create index if not exists idx_marks_learner_id on marks(learner_id);
+create index if not exists idx_marks_class_id on marks(class_id);
+create index if not exists idx_mark_uploads_class_id on mark_uploads(class_id);
