@@ -104,7 +104,7 @@ async function getProfile(sql, email, fullName) {
 async function loadDashboard(sql, profileId) {
   const weekStart = getWeekStartDate();
 
-  const [classes, learners, observations, reportStructures, usageRows] = await Promise.all([
+  const [classes, learners, observations, reportStructures, usageRows, marks] = await Promise.all([
     sql`select * from classes where profile_id = ${profileId} order by created_at asc`,
     sql`
       select learners.*
@@ -116,6 +116,7 @@ async function loadDashboard(sql, profileId) {
     sql`select * from observations where profile_id = ${profileId} order by created_at desc limit 500`,
     sql`select * from report_structures where profile_id = ${profileId} order by created_at desc`,
     sql`select * from voice_usage where profile_id = ${profileId} and week_start_date = ${weekStart}`,
+    sql`select * from marks where profile_id = ${profileId} order by created_at desc`,
   ]);
 
   const usage = usageRows[0] || {
@@ -130,6 +131,7 @@ async function loadDashboard(sql, profileId) {
     observations,
     reportStructures,
     usage,
+    marks,
   };
 }
 
@@ -296,6 +298,58 @@ async function reassignObservation(sql, payload) {
   return { profile, ...dashboard };
 }
 // ---------------------------------------------
+async function saveMarks(sql, payload) {
+  const profile = await getProfile(sql, payload.email, payload.fullName);
+
+  if (!payload.classId || !Array.isArray(payload.marks) || !payload.marks.length) {
+    throw new Error('classId and at least one confirmed mark are required.');
+  }
+
+  const classRows = await sql`select * from classes where id = ${payload.classId} and profile_id = ${profile.id}`;
+  if (!classRows[0]) throw new Error('Class not found for this teacher.');
+
+  const uploadRows = await sql`
+    insert into mark_uploads (profile_id, class_id, file_name, period_label, term, academic_year, status, raw_extract_json)
+    values (
+      ${profile.id},
+      ${payload.classId},
+      ${payload.fileName || null},
+      ${payload.periodLabel || null},
+      ${payload.term || null},
+      ${payload.academicYear || null},
+      'confirmed',
+      ${JSON.stringify(payload.marks)}::jsonb
+    )
+    returning *
+  `;
+  const uploadId = uploadRows[0].id;
+
+  for (const mark of payload.marks) {
+    if (!mark.learnerId || !mark.subject) continue;
+
+    const learnerRows = await sql`
+      select learners.* from learners
+      join classes on classes.id = learners.class_id
+      where learners.id = ${mark.learnerId} and classes.id = ${payload.classId} and classes.profile_id = ${profile.id}
+    `;
+    if (!learnerRows[0]) continue;
+
+    await sql`
+      insert into marks (
+        profile_id, class_id, learner_id, mark_upload_id, subject,
+        mark_display, mark_value, out_of, period_label, term, academic_year
+      ) values (
+        ${profile.id}, ${payload.classId}, ${mark.learnerId}, ${uploadId}, ${mark.subject},
+        ${mark.markDisplay || null}, ${mark.markValue ?? null}, ${mark.outOf ?? null},
+        ${payload.periodLabel || null}, ${payload.term || null}, ${payload.academicYear || null}
+      )
+    `;
+  }
+
+  const dashboard = await loadDashboard(sql, profile.id);
+  return { profile, ...dashboard };
+}
+// ---------------------------------------------
 async function generateReport(sql, payload) {
   const profile = await getProfile(sql, payload.email, payload.fullName);
 
@@ -309,6 +363,12 @@ async function generateReport(sql, payload) {
 
   const observationRows = await sql`
     select * from observations
+    where profile_id = ${profile.id} and learner_id = ${payload.learnerId}
+    order by created_at desc
+  `;
+
+  const markRows = await sql`
+    select * from marks
     where profile_id = ${profile.id} and learner_id = ${payload.learnerId}
     order by created_at desc
   `;
@@ -342,8 +402,11 @@ async function generateReport(sql, payload) {
     Here are the teacher's classroom observations over this period:
     ${observationRows.length > 0 ? observationRows.map(o => `- [${o.category}] ${o.cleaned_text}`).join('\n') : 'No observations recorded yet.'}
 
-    Here are the learner's marks and additional context provided by the teacher:
-    ${payload.contextMarks || 'No additional marks or context provided.'}
+    Here are the learner's saved marks on record${payload.periodLabel ? ` (focused on: ${payload.periodLabel})` : ''}:
+    ${markRows.length > 0 ? markRows.map((m) => `- ${m.subject}: ${m.mark_display || m.mark_value}${m.period_label ? ` (${m.period_label})` : ''}`).join('\n') : 'No marks on record.'}
+
+    Here is any additional free-text context or marks the teacher pasted in for this report:
+    ${payload.contextMarks || 'No additional context provided.'}
 
     Report Structure and Tone:
     Tone: ${reportStructure.tone}
@@ -431,6 +494,7 @@ export async function handler(event) {
     if (action === 'createLearners') return json(200, await createLearners(sql, payload));
     if (action === 'addObservation') return json(200, await addObservation(sql, payload));
     if (action === 'reassignObservation') return json(200, await reassignObservation(sql, payload));
+    if (action === 'saveMarks') return json(200, await saveMarks(sql, payload));
     if (action === 'generateReport') return json(200, await generateReport(sql, payload));
 
     return json(400, { error: `Unknown action: ${action}` });
