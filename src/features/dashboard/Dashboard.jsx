@@ -6,8 +6,9 @@ import LearnerList from '../learners/LearnerList.jsx';
 import LearnerManager from '../learners/LearnerManager.jsx';
 import ObservationCapture from '../observations/ObservationCapture.jsx';
 import ReportPanel from '../reports/ReportPanel.jsx';
+import MarksPanel from '../marks/MarksPanel.jsx';
 
-export default function Dashboard({ session, dashboard, selectedClassId, selectedLearnerId, loading, error, onLogout, onSelectClass, onSelectLearner, onSaveObservation, onGenerateReport, onAddLearners, onRemoveLearner, onReassignObservation }) {
+export default function Dashboard({ session, dashboard, selectedClassId, selectedLearnerId, loading, error, onLogout, onSelectClass, onSelectLearner, onSaveObservation, onGenerateReport, onAddLearners, onRemoveLearner, onReassignObservation, onSaveMarks }) {
   const [currentTab, setCurrentTab] = useState('capture');
   const [report, setReport] = useState(null);
   
@@ -38,6 +39,7 @@ export default function Dashboard({ session, dashboard, selectedClassId, selecte
       <nav className="dashboard-nav segmented-control">
         <button className={currentTab === 'capture' ? 'active' : ''} onClick={() => setCurrentTab('capture')}>Capture Notes</button>
         <button className={currentTab === 'reports' ? 'active' : ''} onClick={() => setCurrentTab('reports')}>Draft Reports</button>
+        <button className={currentTab === 'marks' ? 'active' : ''} onClick={() => setCurrentTab('marks')}>Marks</button>
         <button className={currentTab === 'settings' ? 'active' : ''} onClick={() => setCurrentTab('settings')}>Settings</button>
       </nav>
 
@@ -66,6 +68,10 @@ export default function Dashboard({ session, dashboard, selectedClassId, selecte
           {/* Note: We pass 'realLearners' so the transcription API gets the real names */}
           <ObservationCapture learner={learner} classLearners={realLearners} observations={observations} loading={loading} onSaveObservation={saveObservation} onReassignObservation={onReassignObservation} />
         </section>
+      )}
+
+      {currentTab === 'marks' && (
+        <MarksPanel learners={realLearners} marks={dashboard.marks} loading={loading} onSaveMarks={onSaveMarks} />
       )}
 
       {currentTab === 'reports' && (
