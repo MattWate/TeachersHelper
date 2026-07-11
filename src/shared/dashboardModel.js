@@ -5,6 +5,7 @@ export function mapDashboard(data) {
     learners: data.learners || [],
     observations: data.observations || [],
     reportStructures: data.reportStructures || [],
+    marks: data.marks || [],
     usage: data.usage || { voice_note_count: 0, seconds_used: 0 },
   };
 }
@@ -19,6 +20,14 @@ export function getClassLearners(dashboard, classId) {
 
 export function getLearnerObservations(dashboard, learnerId) {
   return dashboard?.observations.filter((observation) => observation.learner_id === learnerId) || [];
+}
+
+export function getLearnerMarks(dashboard, learnerId) {
+  return dashboard?.marks.filter((mark) => mark.learner_id === learnerId) || [];
+}
+
+export function getClassMarks(dashboard, classId) {
+  return dashboard?.marks.filter((mark) => mark.class_id === classId) || [];
 }
 
 export function wordCount(text = '') {
