@@ -15,7 +15,7 @@ export default function App() {
   const [checking, setChecking] = useState(true);
   const [dashboard, setDashboard] = useState(null);
   const [selectedClassId, setSelectedClassId] = useState(null);
-  const [selectedLearnerId, setSelectedLearnerId] = useState(null);
+  const [selectedLearnerId, setSelectedLearnerId] = useState('auto');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -28,9 +28,7 @@ export default function App() {
     if (!dashboard) return;
     const nextClassId = selectedClassId || dashboard.classes[0]?.id || null;
     if (!selectedClassId && nextClassId) setSelectedClassId(nextClassId);
-    const firstLearner = dashboard.learners.find((learner) => learner.class_id === nextClassId && learner.active !== false);
-    if (!selectedLearnerId && firstLearner) setSelectedLearnerId(firstLearner.id);
-  }, [dashboard, selectedClassId, selectedLearnerId]);
+  }, [dashboard, selectedClassId]);
 
   async function loadWorkspace(currentSession) {
     if (!currentSession?.email) return;
@@ -77,7 +75,7 @@ export default function App() {
     setSession(null);
     setDashboard(null);
     setSelectedClassId(null);
-    setSelectedLearnerId(null);
+    setSelectedLearnerId('auto');
   }
 
   async function run(action, payload = {}) {
@@ -122,7 +120,7 @@ export default function App() {
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result.error) throw new Error(result.error || 'Could not remove learner.');
-      if (learnerId === selectedLearnerId) setSelectedLearnerId(null);
+      if (learnerId === selectedLearnerId) setSelectedLearnerId('auto');
       await loadWorkspace(session);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
