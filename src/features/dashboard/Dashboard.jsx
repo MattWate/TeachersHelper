@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { getClassLearners, getLearnerObservations } from '../../shared/dashboardModel.js';
+import { getClassLearners, getLearnerMarks } from '../../shared/dashboardModel.js';
 import DashboardHero from './DashboardHero.jsx';
 import StatsGrid from './StatsGrid.jsx';
+import ClassHeaderBar from './ClassHeaderBar.jsx';
 import LearnerList from '../learners/LearnerList.jsx';
 import LearnerManager from '../learners/LearnerManager.jsx';
 import ObservationCapture from '../observations/ObservationCapture.jsx';
@@ -11,27 +12,26 @@ import MarksPanel from '../marks/MarksPanel.jsx';
 export default function Dashboard({ session, dashboard, selectedClassId, selectedLearnerId, loading, error, onLogout, onSelectClass, onSelectLearner, onSaveObservation, onGenerateReport, onAddLearners, onRemoveLearner, onReassignObservation, onSaveMarks }) {
   const [currentTab, setCurrentTab] = useState('capture');
   const [report, setReport] = useState(null);
-  
+
   const activeClass = dashboard.classes.find((item) => item.id === selectedClassId) || dashboard.classes[0];
   const realLearners = getClassLearners(dashboard, activeClass?.id);
-  
-  // NEW: Create an Auto-Detect pseudo-learner at the very top of the list!
-  const autoDetectLearner = { id: 'auto', full_name: '✨ Auto-Detect Learner (Quick Record)' };
-  const learnersWithAuto = realLearners.length > 0 ? [autoDetectLearner, ...realLearners] : [];
-  
-  // Default to Auto-Detect
-  const learner = learnersWithAuto.find((item) => item.id === selectedLearnerId) || learnersWithAuto[0];
-  const observations = learner?.id === 'auto' ? [] : getLearnerObservations(dashboard, learner?.id);
+
+  // Capture tab: 'auto' is a valid selection (global auto-detect), not a real learner id.
+  const activeLearnerId = selectedLearnerId || 'auto';
+
+  // Reports tab always needs a concrete learner — falls back to the first real one.
+  const reportLearner = realLearners.find((item) => item.id === selectedLearnerId) || realLearners[0];
+  const reportLearnerMarks = reportLearner ? getLearnerMarks(dashboard, reportLearner.id) : [];
 
   async function saveObservation(payload) {
-    // If the auto-assigner passes a learnerId in the payload, it overrides the 'auto' id
-    await onSaveObservation({ classId: activeClass.id, learnerId: learner.id, ...payload });
+    await onSaveObservation({ classId: activeClass.id, ...payload });
     setReport(null);
   }
 
   async function generateReport(options) {
-    const draft = await onGenerateReport({ learnerId: learner.id, ...options });
+    const draft = await onGenerateReport({ learnerId: reportLearner.id, ...options });
     setReport(draft);
+    return draft;
   }
 
   return (
@@ -54,19 +54,22 @@ export default function Dashboard({ session, dashboard, selectedClassId, selecte
       )}
 
       {currentTab === 'capture' && (
-        <section className="workspace capture-workspace">
-          <LearnerList 
-            activeClass={activeClass} 
-            classes={dashboard.classes} 
-            learners={learnersWithAuto} 
-            observations={dashboard.observations} 
-            selectedLearnerId={learner?.id} 
-            onSelectLearner={onSelectLearner} 
+        <section className="capture-page">
+          <ClassHeaderBar
+            activeClass={activeClass}
+            classes={dashboard.classes}
             onSelectClass={onSelectClass}
-            onNavigateToSettings={() => setCurrentTab('settings')} 
+            onNavigateToSettings={() => setCurrentTab('settings')}
           />
-          {/* Note: We pass 'realLearners' so the transcription API gets the real names */}
-          <ObservationCapture learner={learner} classLearners={realLearners} observations={observations} loading={loading} onSaveObservation={saveObservation} onReassignObservation={onReassignObservation} />
+          <ObservationCapture
+            activeLearnerId={activeLearnerId}
+            onSelectLearner={onSelectLearner}
+            learners={realLearners}
+            observations={dashboard.observations}
+            loading={loading}
+            onSaveObservation={saveObservation}
+            onReassignObservation={onReassignObservation}
+          />
         </section>
       )}
 
@@ -76,17 +79,25 @@ export default function Dashboard({ session, dashboard, selectedClassId, selecte
 
       {currentTab === 'reports' && (
         <section className="workspace reports-workspace">
-          <LearnerList 
-            activeClass={activeClass} 
-            classes={dashboard.classes} 
-            learners={realLearners} // Hide auto-detect from the reports tab
-            observations={dashboard.observations} 
-            selectedLearnerId={learner?.id === 'auto' ? realLearners[0]?.id : learner?.id} 
-            onSelectLearner={onSelectLearner} 
+          <LearnerList
+            activeClass={activeClass}
+            classes={dashboard.classes}
+            learners={realLearners}
+            observations={dashboard.observations}
+            selectedLearnerId={reportLearner?.id}
+            onSelectLearner={onSelectLearner}
             onSelectClass={onSelectClass}
             onNavigateToSettings={() => setCurrentTab('settings')}
           />
-          <ReportPanel learner={learner?.id === 'auto' ? realLearners[0] : learner} report={report} loading={loading} onGenerateReport={generateReport} />
+          <ReportPanel
+            learner={reportLearner}
+            classLearners={realLearners}
+            learnerMarks={reportLearnerMarks}
+            report={report}
+            loading={loading}
+            onGenerateReport={generateReport}
+            onSaveMarks={onSaveMarks}
+          />
         </section>
       )}
     </main>
